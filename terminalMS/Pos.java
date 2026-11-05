@@ -40,29 +40,15 @@ public class Pos extends ArrayList<Integer> {
         return list;
     }
 
-    public ArrayList<Pos> getAround(int distance, boolean includeOrigin) {
+    public ArrayList<Pos> getAround(int range, boolean includeOrigin) {
         ArrayList<Pos> list = new ArrayList<>();
-        for (int i = -distance; i <= distance; i++) {
-            for (int j = -distance; j <= distance; j++) {
+        for (int i = -range; i <= range; i++) {
+            for (int j = -range; j <= range; j++) {
                 if(!includeOrigin && i == 0 && j == 0) {
                     continue;
                 }
 
                 list.add(new Pos(this, j, i));
-            }
-        }
-        return list;
-    }
-
-    public ArrayList<Pos> getAround(int distance) {
-        return getAround(distance, false);
-    }
-
-    public ArrayList<Pos> getSquare(int xSize, int ySize) {
-        ArrayList<Pos> list = new ArrayList<>();
-        for (int j = -ySize; j <= ySize; j++) {
-            for (int i = -xSize; i <= xSize; i++) {
-                list.add(new Pos(this, i, j));
             }
         }
         return list;

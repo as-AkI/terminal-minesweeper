@@ -6,13 +6,17 @@ public class Tile {
     private int detec;
 
     public enum Content {
-        SAFE(""),
-        MINE(ANSI.WHITE_B.code()+" M");
+        NONE(),
+        SAFE(),
+        MINE(ANSI.WHITE_B.code()+" M"+ANSI.RESET.code());
 
         private final String icon;
 
         Content(String icon) {
             this.icon = icon;
+        }
+        Content() {
+            this.icon = "  ";
         }
 
         public String getIcon() {
@@ -21,14 +25,18 @@ public class Tile {
     }
 
     public enum State {
-        OPEN(""),
-        HIDE(""),
-        FLAG(ANSI.BLACK_B.code()+" F");
+        NONE(),
+        OPEN(),
+        HIDE(),
+        FLAG(ANSI.BLACK_B.code()+" F"+ANSI.RESET.code());
 
         private final String icon;
 
         State(String icon) {
             this.icon = icon;
+        }
+        State() {
+            this.icon = "  ";
         }
 
         public String getIcon() {

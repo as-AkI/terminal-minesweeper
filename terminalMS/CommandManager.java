@@ -55,7 +55,7 @@ public class CommandManager {
     }
 
     /** @return if succeeded */
-    public Boolean inputCommand(Land land) {
+    public boolean inputCommand(Land land) {
         try {
             if (this.getFixedCommand() != Command.NONE) {
                 System.out.print(this.getFixedCommand() + " ");
@@ -126,7 +126,7 @@ public class CommandManager {
 
     }
 
-    public Boolean open(List<String> paramList, Land land) {
+    public boolean open(List<String> paramList, Land land) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
@@ -145,7 +145,7 @@ public class CommandManager {
         }
     }
 
-    public Boolean flag(List<String> paramList, Land land) {
+    public boolean flag(List<String> paramList, Land land) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
@@ -164,19 +164,25 @@ public class CommandManager {
         }
     }
 
-    public Boolean info(List<String> paramList, Land land) {
+    public boolean info(List<String> paramList, Land land) {
         int paramCount = paramList.size();
 
-        if (paramCount == 1) {
+        switch (paramCount) {
+            case 0:
+                return land.info();
+
+            case 1:
             int x = (int) (paramList.get(0).charAt(0) - CHAR_OFFSET);
             int y = (int) (paramList.get(0).charAt(1) - CHAR_OFFSET);
             return land.info(new Pos(x, y));
+
+            default:
+                System.out.println("incorrect info!");
+                return false;
         }
-        System.out.println("incorrect flag!");
-        return false;
     }
 
-    public Boolean end(List<String> paramList, Land land) {
+    public boolean end(List<String> paramList, Land land) {
         System.exit(0);
         return false;
     }
