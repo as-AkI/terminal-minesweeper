@@ -11,6 +11,8 @@ public class Main {
     public static void main(String[] args) {
         Land land = new Land(10, 5, 7);
 
+        Sweeper sweeper = new Sweeper(land);
+
         CommandManager cm = new CommandManager();
 
         Loop:
@@ -30,7 +32,7 @@ public class Main {
                     break;
             }
 
-            cm.inputCommand(land);
+            cm.inputCommand(land, sweeper);
         }
     }
 }

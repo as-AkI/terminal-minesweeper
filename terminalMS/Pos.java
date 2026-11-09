@@ -1,6 +1,7 @@
 package terminalMS;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Pos extends ArrayList<Integer> {
     Pos(int x, int y) {
@@ -27,8 +28,8 @@ public class Pos extends ArrayList<Integer> {
         return this;
     }
 
-    public ArrayList<Pos> getAroundEight() {
-        ArrayList<Pos> list = new ArrayList<>();
+    public List<Pos> getAroundEight() {
+        List<Pos> list = new ArrayList<>();
         list.add(new Pos(this, -1, -1));
         list.add(new Pos(this, 0, -1));
         list.add(new Pos(this, 1, -1));
@@ -40,8 +41,8 @@ public class Pos extends ArrayList<Integer> {
         return list;
     }
 
-    public ArrayList<Pos> getAround(int range, boolean includeOrigin) {
-        ArrayList<Pos> list = new ArrayList<>();
+    public List<Pos> getAround(int range, boolean includeOrigin) {
+        List<Pos> list = new ArrayList<>();
         for (int i = -range; i <= range; i++) {
             for (int j = -range; j <= range; j++) {
                 if(!includeOrigin && i == 0 && j == 0) {

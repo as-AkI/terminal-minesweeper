@@ -6,81 +6,79 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Predicate;
 
 import terminalMS.Tile.ANSI;
 import terminalMS.Tile.Content;
 import terminalMS.Tile.State;
 
-public class Land {
-    final int X_SIZE;
-    final int Y_SIZE;
-    final int M_COUNT;
-
-    final long SEED;
-    final Random random;
-
+public class Land extends HashMap<Pos, Tile> {
     static final long LONG_MAX = 9223372036854775807L;
 
-    private Map<Pos, Tile> data;
+    final long SEED;
+    
+    private Random random;
+    private List<Pos> keyList = new ArrayList<>();
+    private int startMineCount;
     private boolean opened = false;
 
-    public Land(int xSize, int ySize, int mineCount) {
-        this.M_COUNT = mineCount;
-
-        this.X_SIZE = xSize;
-        this.Y_SIZE = ySize;
-
+    public Land() {
         SEED = Math.round(Math.random() * LONG_MAX);
         random = new Random(SEED);
-
-        // System.out.println(SEED);
-
-        this.data = genPlainData();
     }
 
-    public Map<Pos, Tile> genPlainData() {
-        Map<Pos, Tile> data = new HashMap<>();
+    public Land(int xSize, int ySize, int mineCount) {
+        this();
+        startMineCount = mineCount;
 
-        for (int j = 0; j < Y_SIZE; j++) {
-            for (int i = 0; i < X_SIZE; i++) {
+        genPlainBox(xSize, ySize);
+    }
+
+    public void genPlainBox(int xSize, int ySize) {
+        for (int j = 0; j < ySize; j++) {
+            for (int i = 0; i < xSize; i++) {
                 Pos targetPos = new Pos(i, j);
                 Tile targetTile = new Tile(Content.NONE, State.NONE);
-                data.put(targetPos, targetTile);
-            }
-        }
+                this.put(targetPos, targetTile);
+                keyList.add(targetPos);
 
-        return data;
-    }
-
-    public void genContent() {
-        List<Integer> landSeed = genComb(X_SIZE * Y_SIZE, M_COUNT);
-
-        for (int j = 0; j < Y_SIZE; j++) {
-            for (int i = 0; i < X_SIZE; i++) {
-                Tile targetTile = getTile(new Pos(i, j));
-
-                targetTile.setState(State.HIDE);
-
-                if (landSeed.get(i + j * Y_SIZE) == 1) {
-                    targetTile.setContent(Content.MINE);
-                } else {
-                    targetTile.setContent(Content.SAFE);
-                }
             }
         }
     }
+
+    // public void genContent(int mineCount) {
+    // List<Pos> allPosList = getAllPos();
+
+    // List<Integer> landSeed = genComb(allPosList.size(), mineCount);
+
+    // for (int i = 0; i < allPosList.size(); i++) {
+    // Tile targetTile = getTile(allPosList.get(i));
+
+    // targetTile.setState(State.HIDE);
+
+    // if (landSeed.get(i) == 1) {
+    // targetTile.setContent(Content.MINE);
+    // } else {
+    // targetTile.setContent(Content.SAFE);
+    // }
+    // }
+
+    // }
 
     public void genContent(Pos startPos) {
+        int mineCount = this.startMineCount;
         List<Integer> landSeed;
-        List<Pos> allPosList = getAllPos();
+        List<Pos> allPosList = keyList();
         List<Pos> aroundPosList = getIncludedfrom(startPos.getAround(1, true));
 
-        int unknown = X_SIZE * Y_SIZE - aroundPosList.size();
+        int tileCount = keyList().size();
 
-        if (unknown < M_COUNT) {
-            landSeed = genComb(X_SIZE * Y_SIZE, M_COUNT);
+        int unknown = tileCount - aroundPosList.size();
+
+        if (unknown < mineCount) {
+            landSeed = genComb(tileCount, mineCount);
         } else {
-            landSeed = genComb(unknown, M_COUNT);
+            landSeed = genComb(unknown, mineCount);
 
             for (int i = 0; i < allPosList.size(); i++) {
                 Pos targetPos = allPosList.get(i);
@@ -107,42 +105,20 @@ public class Land {
     }
 
     public void genDetec() {
-        for (int j = 0; j < Y_SIZE; j++) {
-            for (int i = 0; i < X_SIZE; i++) {
-                Pos originPos = new Pos(i, j);
+        List<Pos> allPosList = keyList();
+        for (int i = 0; i < allPosList.size(); i++) {
+            Pos originPos = allPosList.get(i);
 
-                List<Pos> targetPosList = originPos.getAroundEight();
+            List<Pos> targetPosList = originPos.getAroundEight();
 
-                Pos targetPos;
+            for (int j = 0; j < targetPosList.size(); j++) {
+                Pos targetPos = targetPosList.get(j);
 
-                for (int k = 0; k < targetPosList.size(); k++) {
-                    targetPos = targetPosList.get(k);
-
-                    if (isIncluded(targetPos) && getTile(originPos).getContent() == Content.MINE) {
-                        getTile(targetPos).setdetec(getTile(targetPos).getdetec() + 1);
-                    }
+                if (isIncluded(targetPos) && getTile(originPos).getContent() == Content.MINE) {
+                    getTile(targetPos).setdetec(getTile(targetPos).getdetec() + 1);
                 }
             }
         }
-    }
-
-    public boolean isIncluded(Pos pos) {
-        int x = pos.x();
-        int y = pos.y();
-
-        return (0 <= x && x < X_SIZE && 0 <= y && y < Y_SIZE);
-    }
-
-    public List<Pos> getIncludedfrom(List<Pos> rawList) {
-        List<Pos> list = new ArrayList<>();
-        for (int i = 0; i < rawList.size(); i++) {
-            Pos targetPos = rawList.get(i);
-            if (isIncluded(targetPos)) {
-                list.add(targetPos);
-            }
-        }
-
-        return list;
     }
 
     public List<Integer> genComb(int n, int r) {
@@ -164,25 +140,40 @@ public class Land {
         return list;
     }
 
-    public Tile getTile(Pos pos) {
-        return data.get(pos);
+    public boolean isIncluded(Pos pos) {
+        return keyList().contains(pos);
     }
 
-    // public Tile getTile(int x, int y) {
-    // return getTile(new Pos(x, y));
-    // }
+    public boolean isOpened() {
+        return this.opened;
+    }
 
-    public List<Pos> getAllPos() {
-        ArrayList<Pos> list = new ArrayList<>();
-        for (int j = 0; j < Y_SIZE; j++) {
-            for (int i = 0; i < X_SIZE; i++) {
-                Pos targetPos = new Pos(i, j);
-                if (isIncluded(targetPos)) {
-                    list.add(targetPos);
-                }
+    public void setOpened(boolean opened) {
+        this.opened = opened;
+    }
+
+    public long getSeed() {
+        return this.SEED;
+    }
+
+    public List<Pos> getIncludedfrom(List<Pos> rawList) {
+        List<Pos> list = new ArrayList<>();
+        for (int i = 0; i < rawList.size(); i++) {
+            Pos targetPos = rawList.get(i);
+            if (isIncluded(targetPos)) {
+                list.add(targetPos);
             }
         }
+
         return list;
+    }
+
+    public Tile getTile(Pos pos) {
+        return this.get(pos);
+    }
+
+    public List<Pos> keyList() {
+        return this.keyList;
     }
 
     public String getAppearance(Pos pos) {
@@ -232,7 +223,7 @@ public class Land {
                 }
                 break;
 
-            default: // FLAG
+            default: // FLAG, NONE
                 if (bright) {
                     color = ANSI.LIGHT_GRAY_BG;
                 } else {
@@ -248,46 +239,56 @@ public class Land {
 
     public void showData() {
         System.out.println(getStatus());
-        for (int j = 0; j < Y_SIZE; j++) {
+        int[] box = getBox();
+        
+        for (int j = box[2]; j <= box[3]; j++) {
             StringBuilder sb = new StringBuilder();
 
-            for (int i = 0; i < X_SIZE; i++) {
+            for (int i = box[0]; i <= box[1]; i++) {
 
                 sb.append(getAppearance(new Pos(i, j)));
 
-                if (i == X_SIZE - 1) {
+                if (i == box[1] - 1) {
                     System.out.println(sb);
                 }
             }
         }
     }
 
-    public int countState(State state, Pos originPos, int range, boolean includeOrigin) {
-        int count = 0;
+    public int[] getBox() {
+        int[] ar = new int[4];
 
-        List<Pos> aroundPosList = originPos.getAround(range, includeOrigin);
+        List<Pos> allPosList = keyList();
+        
+        ar[0] = allPosList.get(0).x();
+        ar[1] = ar[0];
+        ar[2] = allPosList.get(0).y();
+        ar[3] = ar[2];
+        for (int i = 1; i < allPosList.size(); i++) {
+            int X = allPosList.get(i).x();
+            int Y = allPosList.get(i).y();
 
-        Pos targetPos;
-
-        for (int i = 0; i < aroundPosList.size(); i++) {
-            targetPos = aroundPosList.get(i);
-
-            if (isIncluded(targetPos) && getTile(targetPos).getState() == state) {
-                count++;
-            }
+            if (X < ar[0]) ar[0] = X;
+            if (X > ar[1]) ar[1] = X;
+            if (Y < ar[2]) ar[2] = Y;
+            if (Y > ar[3]) ar[3] = Y;
         }
 
-        return count;
+        return ar;
     }
 
-    public int countState(State state) {
+    public String getStatus() {
+        return "M:" + count(Content.MINE) + " F:" + count(State.FLAG);
+    }
+
+    public int count(Predicate<Tile> condition, List<Pos> posList) {
         int count = 0;
 
-        for (int j = 0; j < Y_SIZE; j++) {
-            for (int i = 0; i < X_SIZE; i++) {
-                Pos targetPos = new Pos(i, j);
+        for (int i = 0; i < posList.size(); i++) {
+            Pos targetPos = posList.get(i);
 
-                if (getTile(targetPos).getState() == state) {
+            if (isIncluded(targetPos)) {
+                if (condition.test(getTile(targetPos))) {
                     count++;
                 }
             }
@@ -296,86 +297,41 @@ public class Land {
         return count;
     }
 
-    public boolean open(Pos pos) {
-        if (!this.opened) {
-            genContent(pos);
-            genDetec();
-            this.opened = true;
+    public int count(Tile keyTile, List<Pos> posList) {
+        State keyState = keyTile.getState();
+        Content keyContent = keyTile.getContent();
+
+        Predicate<Tile> condition;
+
+        condition = (tile) -> (tile.getState() == keyState && tile.getContent() == keyContent);
+        if (keyState != State.NONE && keyContent == Content.NONE) {
+            condition = (tile) -> (tile.getState() == keyState);
+        }
+        if (keyState == State.NONE && keyContent != Content.NONE) {
+            condition = (tile) -> (tile.getContent() == keyContent);
         }
 
-        boolean aroundSafe;
-        if (!isIncluded(pos)) {
-            System.err.println("Land open: not included!" + "(" + pos.x() + "," + pos.y() + ")");
-        }
-
-        Tile targetTile = getTile(pos);
-
-        if (targetTile.getState() == State.HIDE) {
-            targetTile.setState(State.OPEN);
-            aroundSafe = (targetTile.getdetec() == 0);
-        } else {
-            // consider flag
-            aroundSafe = (targetTile.getdetec() - countState(State.FLAG, pos, 1, true) == 0);
-        }
-
-        if (targetTile.getContent() == Content.SAFE && aroundSafe) {
-            List<Pos> aroundPosList = pos.getAroundEight();
-
-            Pos targetPos;
-
-            for (int i = 0; i < aroundPosList.size(); i++) {
-                targetPos = aroundPosList.get(i);
-
-                if (isIncluded(targetPos) && getTile(targetPos).getState() == State.HIDE) {
-                    open(targetPos);
-                }
-            }
-
-            return true;
-        }
-
-        return false;
+        return count(condition, posList);
     }
 
-    public boolean flag(Pos pos) {
-        if (isIncluded(pos)) {
-            Tile targetTile = getTile(pos);
-            switch (targetTile.getState()) {
-                case State.HIDE:
-                    targetTile.setState(State.FLAG);
-                    return true;
-
-                case State.FLAG:
-                    targetTile.setState(State.HIDE);
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-        return false;
+    public int count(State state, List<Pos> posList) {
+        return count((tile) -> (tile.getState() == state), posList);
     }
 
-    public boolean info(Pos pos) {
-        if (isIncluded(pos)) {
-            Tile targetTile = getTile(pos);
-            System.out.println(
-                    "pos:" + pos +
-                            ", state:" + targetTile.getState() +
-                            ", content:" + targetTile.getContent() +
-                            ", detec:" + targetTile.getdetec());
-            return true;
-        }
-        return false;
+    public int count(State state, Pos originPos, int range, boolean includeOrigin) {
+        return count(state, originPos.getAround(range, includeOrigin));
     }
 
-    public boolean info() {
-        System.out.println("seed:" + this.SEED);
-        return true;
+    public int count(State state) {
+        return count(state, keyList());
     }
 
-    public String getStatus() {
-        return "M:" + M_COUNT + " F:" + countState(State.FLAG);
+    public int count(Content content, List<Pos> posList) {
+        return count((tile) -> (tile.getContent() == content), posList);
+    }
+
+    public int count(Content content) {
+        return count(content, keyList());
     }
 
     public enum Event {
@@ -387,7 +343,7 @@ public class Land {
     public Event getEvent() {
         int openSafe = 0;
 
-        List<Pos> allPosList = getAllPos();
+        List<Pos> allPosList = keyList();
         for (int i = 0; i < allPosList.size(); i++) {
             Tile targetTile = getTile(allPosList.get(i));
             if (targetTile.getState() == State.OPEN) {
@@ -403,48 +359,10 @@ public class Land {
             }
         }
 
-        if (openSafe == X_SIZE * Y_SIZE - M_COUNT) {
+        if (isOpened() && openSafe == count(Content.SAFE)) {
             return Event.CLEAR;
         }
 
         return Event.NONE;
-    }
-
-    public long getSeed() {
-        return this.SEED;
-    }
-
-    public void deduce(Pos pos, int range) {
-        List<Pos> aroundList = pos.getAround(1, true);
-
-        Map<Pos, Content> deduData = new HashMap<>();
-
-        int unknown = 0;
-
-        for (int i = 0; i < aroundList.size(); i++) {
-            Pos targetPos = aroundList.get(i);
-            if (!isIncluded(targetPos)) {
-                continue;
-            }
-
-            switch (getTile(targetPos).getState()) {
-                case State.OPEN:
-                    deduData.put(targetPos, Content.SAFE);
-                    break;
-
-                case State.FLAG:
-                    deduData.put(targetPos, Content.MINE);
-                    break;
-
-                default: // HIDE
-                    deduData.put(targetPos, Content.NONE);
-                    unknown++;
-                    break;
-            }
-        }
-
-        for (int i = 0; i < unknown; i++) {
-
-        }
     }
 }

@@ -55,7 +55,7 @@ public class CommandManager {
     }
 
     /** @return if succeeded */
-    public boolean inputCommand(Land land) {
+    public boolean inputCommand(Land land, Sweeper sweeper) {
         try {
             if (this.getFixedCommand() != Command.NONE) {
                 System.out.print(this.getFixedCommand() + " ");
@@ -83,19 +83,19 @@ public class CommandManager {
 
             switch (command) {
                 case Command.FIX:
-                    return fix(paramList, land);
+                    return fix(paramList);
 
                 case Command.OPEN:
-                    return open(paramList, land);
+                    return open(paramList, land, sweeper);
 
                 case Command.FLAG:
-                    return flag(paramList, land);
+                    return flag(paramList, land, sweeper);
 
                 case Command.INFO:
-                    return info(paramList, land);
+                    return info(paramList, land, sweeper);
 
                 case Command.END:
-                    return end(paramList, land);
+                    return end(paramList);
 
                 default:
                     System.out.println("unknown command!");
@@ -107,7 +107,7 @@ public class CommandManager {
         return false;
     }
 
-    public boolean fix(List<String> paramList, Land land) {
+    public boolean fix(List<String> paramList) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
@@ -126,7 +126,7 @@ public class CommandManager {
 
     }
 
-    public boolean open(List<String> paramList, Land land) {
+    public boolean open(List<String> paramList, Land land, Sweeper sweeper) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
@@ -137,7 +137,7 @@ public class CommandManager {
             case 1:
                 int x = (int) (paramList.get(0).charAt(0) - CHAR_OFFSET);
                 int y = (int) (paramList.get(0).charAt(1) - CHAR_OFFSET);
-                return land.open(new Pos(x, y));
+                return sweeper.open(new Pos(x, y));
 
             default:
                 System.out.println("incorrect open!");
@@ -145,7 +145,7 @@ public class CommandManager {
         }
     }
 
-    public boolean flag(List<String> paramList, Land land) {
+    public boolean flag(List<String> paramList, Land land, Sweeper sweeper) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
@@ -156,7 +156,7 @@ public class CommandManager {
             case 1:
                 int x = (int) (paramList.get(0).charAt(0) - CHAR_OFFSET);
                 int y = (int) (paramList.get(0).charAt(1) - CHAR_OFFSET);
-                return land.flag(new Pos(x, y));
+                return sweeper.flag(new Pos(x, y));
 
             default:
                 System.out.println("incorrect flag!");
@@ -164,17 +164,17 @@ public class CommandManager {
         }
     }
 
-    public boolean info(List<String> paramList, Land land) {
+    public boolean info(List<String> paramList, Land land, Sweeper sweeper) {
         int paramCount = paramList.size();
 
         switch (paramCount) {
             case 0:
-                return land.info();
+                return sweeper.info();
 
             case 1:
             int x = (int) (paramList.get(0).charAt(0) - CHAR_OFFSET);
             int y = (int) (paramList.get(0).charAt(1) - CHAR_OFFSET);
-            return land.info(new Pos(x, y));
+            return sweeper.info(new Pos(x, y));
 
             default:
                 System.out.println("incorrect info!");
@@ -182,7 +182,7 @@ public class CommandManager {
         }
     }
 
-    public boolean end(List<String> paramList, Land land) {
+    public boolean end(List<String> paramList) {
         System.exit(0);
         return false;
     }
