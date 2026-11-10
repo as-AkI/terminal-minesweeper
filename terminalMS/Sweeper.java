@@ -16,10 +16,8 @@ public class Sweeper {
     }
 
     public boolean open(Pos pos) {
-        if (!land.isOpened()) {
-            land.genContent(pos);
-            land.genDetec();
-            land.setOpened(true);;
+        if (!land.isGenCompleted()) {
+            land.genDetail(pos);
         }
 
         boolean aroundSafe;

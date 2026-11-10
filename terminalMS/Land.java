@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.function.Predicate;
 
@@ -15,12 +14,12 @@ import terminalMS.Tile.State;
 public class Land extends HashMap<Pos, Tile> {
     static final long LONG_MAX = 9223372036854775807L;
 
-    final long SEED;
-    
+    private final long SEED;
+
     private Random random;
     private List<Pos> keyList = new ArrayList<>();
     private int startMineCount;
-    private boolean opened = false;
+    private boolean genCompleted = false;
 
     public Land() {
         SEED = Math.round(Math.random() * LONG_MAX);
@@ -41,33 +40,49 @@ public class Land extends HashMap<Pos, Tile> {
                 Tile targetTile = new Tile(Content.NONE, State.NONE);
                 this.put(targetPos, targetTile);
                 keyList.add(targetPos);
-
             }
         }
     }
 
-    // public void genContent(int mineCount) {
-    // List<Pos> allPosList = getAllPos();
+    public void genDetail(Pos startPos) {
+        genState();
+        genContent(genContentData(startPos));
+        genDetec();
+        setGenCompleted(true);
+    }
 
-    // List<Integer> landSeed = genComb(allPosList.size(), mineCount);
+    public void genState() {
+        List<Pos> allPosList = keyList();
 
-    // for (int i = 0; i < allPosList.size(); i++) {
-    // Tile targetTile = getTile(allPosList.get(i));
+        for (int i = 0; i < allPosList.size(); i++) {
+            Pos targetPos = allPosList.get(i);
+            Tile targetTile = getTile(targetPos);
 
-    // targetTile.setState(State.HIDE);
+            targetTile.setState(State.HIDE);
+        }
+    }
 
-    // if (landSeed.get(i) == 1) {
-    // targetTile.setContent(Content.MINE);
-    // } else {
-    // targetTile.setContent(Content.SAFE);
-    // }
-    // }
+    public void genContent(List<Integer> contentData) {
+        List<Pos> allPosList = keyList();
 
-    // }
+        for (int i = 0; i < allPosList.size(); i++) {
+            Pos targetPos = allPosList.get(i);
+            Tile targetTile = getTile(targetPos);
 
-    public void genContent(Pos startPos) {
+            targetTile.setState(State.HIDE);
+
+            targetTile.setContent(switch (contentData.get(i)) {
+                case 0 -> Content.SAFE;
+                case 1 -> Content.MINE;
+                default -> Content.NONE;
+            });
+        }
+
+    }
+
+    public List<Integer> genContentData(Pos startPos) {
         int mineCount = this.startMineCount;
-        List<Integer> landSeed;
+        List<Integer> contentData;
         List<Pos> allPosList = keyList();
         List<Pos> aroundPosList = getIncludedfrom(startPos.getAround(1, true));
 
@@ -76,32 +91,20 @@ public class Land extends HashMap<Pos, Tile> {
         int unknown = tileCount - aroundPosList.size();
 
         if (unknown < mineCount) {
-            landSeed = genComb(tileCount, mineCount);
+            contentData = genComb(tileCount, mineCount);
         } else {
-            landSeed = genComb(unknown, mineCount);
+            contentData = genComb(unknown, mineCount);
 
             for (int i = 0; i < allPosList.size(); i++) {
                 Pos targetPos = allPosList.get(i);
 
                 if (aroundPosList.contains(targetPos)) {
-                    landSeed.add(i, 0);
+                    contentData.add(i, 0);
                 }
             }
         }
 
-        for (int i = 0; i < allPosList.size(); i++) {
-            Pos targetPos = allPosList.get(i);
-            Tile targetTile = getTile(targetPos);
-
-            targetTile.setState(State.HIDE);
-
-            if (landSeed.get(i) == 1) {
-                targetTile.setContent(Content.MINE);
-            } else {
-                targetTile.setContent(Content.SAFE);
-            }
-        }
-
+        return contentData;
     }
 
     public void genDetec() {
@@ -144,12 +147,12 @@ public class Land extends HashMap<Pos, Tile> {
         return keyList().contains(pos);
     }
 
-    public boolean isOpened() {
-        return this.opened;
+    public boolean isGenCompleted() {
+        return this.genCompleted;
     }
 
-    public void setOpened(boolean opened) {
-        this.opened = opened;
+    public void setGenCompleted(boolean genCompleted) {
+        this.genCompleted = genCompleted;
     }
 
     public long getSeed() {
@@ -193,7 +196,7 @@ public class Land extends HashMap<Pos, Tile> {
                 if (bright) {
                     color = ANSI.LIGHT_GRAY_BG;
                 } else {
-                    color = ANSI.WHITE_BG;
+                    color = ANSI.DIM_LIGHT_GRAY_BG;
                 }
 
                 sb.append(color.code()).append(indexX).append(indexY).append(ANSI.RESET.code());
@@ -203,7 +206,7 @@ public class Land extends HashMap<Pos, Tile> {
                 if (bright) {
                     color = ANSI.LIGHT_GRAY_BG;
                 } else {
-                    color = ANSI.WHITE_BG;
+                    color = ANSI.DIM_LIGHT_GRAY_BG;
                 }
 
                 sb.append(color.code()).append(indexX).append(indexY).append(ANSI.RESET.code());
@@ -237,18 +240,31 @@ public class Land extends HashMap<Pos, Tile> {
         return sb.toString();
     }
 
+    public void appendScale(StringBuilder sb, int n) {
+        sb.append(ANSI.WHITE_BG.code()).append(ANSI.BLACK.code()).append((char)(n+CommandManager.CHAR_OFFSET)).append(" ").append(ANSI.RESET.code());
+    }
+
     public void showData() {
         System.out.println(getStatus());
         int[] box = getBox();
-        
+
+        StringBuilder sbScaleX = new StringBuilder();
+
+        sbScaleX.append(ANSI.WHITE_BG.code()).append(ANSI.BLACK.code()).append("  ");
+        for (int i = box[0]; i <= box[1]; i++) {
+            appendScale(sbScaleX, i);
+        }
+        System.out.println(sbScaleX);
+
         for (int j = box[2]; j <= box[3]; j++) {
             StringBuilder sb = new StringBuilder();
 
-            for (int i = box[0]; i <= box[1]; i++) {
+            appendScale(sb, j);
 
+            for (int i = box[0]; i <= box[1]; i++) {
                 sb.append(getAppearance(new Pos(i, j)));
 
-                if (i == box[1] - 1) {
+                if (i == box[1]) {
                     System.out.println(sb);
                 }
             }
@@ -259,7 +275,7 @@ public class Land extends HashMap<Pos, Tile> {
         int[] ar = new int[4];
 
         List<Pos> allPosList = keyList();
-        
+
         ar[0] = allPosList.get(0).x();
         ar[1] = ar[0];
         ar[2] = allPosList.get(0).y();
@@ -268,10 +284,14 @@ public class Land extends HashMap<Pos, Tile> {
             int X = allPosList.get(i).x();
             int Y = allPosList.get(i).y();
 
-            if (X < ar[0]) ar[0] = X;
-            if (X > ar[1]) ar[1] = X;
-            if (Y < ar[2]) ar[2] = Y;
-            if (Y > ar[3]) ar[3] = Y;
+            if (X < ar[0])
+                ar[0] = X;
+            if (X > ar[1])
+                ar[1] = X;
+            if (Y < ar[2])
+                ar[2] = Y;
+            if (Y > ar[3])
+                ar[3] = Y;
         }
 
         return ar;
@@ -359,7 +379,7 @@ public class Land extends HashMap<Pos, Tile> {
             }
         }
 
-        if (isOpened() && openSafe == count(Content.SAFE)) {
+        if (isGenCompleted() && openSafe == count(Content.SAFE)) {
             return Event.CLEAR;
         }
 

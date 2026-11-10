@@ -105,7 +105,9 @@ public class Tile {
         DEEP_DARK_GRAY   ("38;5;235"),
         DEEP_DARK_GRAY_BG("48;5;235"),
         LIGHT_GRAY   ("38;5;247"),
-        LIGHT_GRAY_BG("48;5;247");
+        LIGHT_GRAY_BG("48;5;247"),
+        DIM_LIGHT_GRAY   ("38;5;251"),
+        DIM_LIGHT_GRAY_BG("48;5;251");
 
         private final String code;
 
